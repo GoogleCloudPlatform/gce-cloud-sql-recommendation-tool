@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GCE To Cloud SQL Recommendations</title>
+<link href="css/simpleGridTemplate.css" rel="stylesheet" type="text/css">
+<link href="https://www.w3schools.com/w3css/4/w3.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<!-- Main Container -->
+<div class="container">
+  <!-- Header -->
+  <header class="header">
+    <h4 class="logo">GCE To Cloud SQL Recommendations</h4>
+  </header>
+  <!-- Hero Section -->
+  <section class="intro">
+    <div class="column"> <img src="images/google-cloud-sql.png"  alt=""/>
+      <h3 class="ws-blue">[[Dyn_NumberOFEasy]] VMs can be easily moved to Cloud SQL </h3>
+    </div>
+    <div class="column">
+      <p class="w3-rightbar">These recommendations are for the purposes of scoping a migration only and do not replace&nbsp; formal discovery,&nbsp; migration assessment. or design sessions.&nbsp; &nbsp; &nbsp;&nbsp;</p>
+    </div>
+  </section>
+  <!-- START RESULTS -->
+  <!-- START PROJECT -->
+  <div class="w3-panel w3-orange hero_header">
+    <p>Project: [[ProjectID]]</p>
+  </div>
+  <div class="gallery">
+    <!-- START VM -->
+    <div class="thumbnail w3-card" > <a href="#"></a>
+      <h4 class="w3-[[EffortColor]]">[[VMInstanceID]] / [[Zone]]</h4>
+      <p class="tag">Migration Effort: [[Dyn_Diffifuclty_PCT]]%</p>
+      <p class="tag">Instance Name: [[SQL Server Installed]]&nbsp;&nbsp;&nbsp;Is BYOL: [[Is BYOL]]&nbsp;</p>
+      <p class="tag">SQL Version: [[Version Complexity]] / [[SQL Edition]]</p>
+      <!-- START FINDINGS -->
+	  <div class="w3-panel w3-light-gray">
+        <h4 class="">[[Repeat_Description]] ([[Dyn_ScoreText]])</h4>
+        <p class="w3-text"><strong>[[Repeat_Recommendation]]</strong></p>
+      </div>
+      <!-- END FINDINGS -->
+    </div>
+    <!-- END VM -->
+  </div>
+  <!-- END PROJECT -->
+<!-- END RESULTS -->
+</div>
+
+
+
+<!-- Footer Section -->
+<footer id="contact">
+  <p class="hero_header">Schedule a Meeting With Your Account Team to Discuss These Recommendations</p>
+  <div class="button">Send To Account Team </div>
+</footer>
+<!-- Copyrights Section -->
+<div class="copyright">&copy;2021 - <strong>Google</strong></div>
+
+<!-- Main Container Ends -->
+</body>
+</html>
