@@ -1,4 +1,19 @@
-- [GCE to Cloud SQL Recommendation Tool Usage](#gce-to-cloud-sql-recommendation-tool-usage)
+<!--
+Copyright 2021 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
 # Solution Overview
 This tool provides modernization insights for moving self-managed SQL Server instances running on Google Compute Engine to fully managed Cloud SQL instances. The tool will identify features that are not offered in MS SQL Server on Linux and provide recommendations for how to implement the features on GCP along with a "ease of migration" score.
 
@@ -32,7 +47,7 @@ The all of the functions executed as part of the GCE to Cloud SQL Recommendation
 
 - Step 4: Download Powershell Installation Script
 ```
-wget --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/steve-kurtz-google/Cloud-SQL-Recommendation-Tool/master/launch_recommendation_tool.sh
+wget --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/launch_recommendation_tool.sh
 ```
 
 - Step 5: Run script to install Powershell on Cloud Shell instance
