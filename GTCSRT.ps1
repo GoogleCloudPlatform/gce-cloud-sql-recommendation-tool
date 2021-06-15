@@ -225,6 +225,7 @@ function Add-Finding {
   $finding | Export-Csv "$AppPath$($PathSep)findings.csv"  -Append -Force
 }
 
+  param
 # Iterates over the Rules.csv and executes the command steps and captures results
 #      as mapped in each rule.
 function Process-Rules {
