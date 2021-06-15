@@ -225,7 +225,28 @@ function Add-Finding {
   $finding | Export-Csv "$AppPath$($PathSep)findings.csv"  -Append -Force
 }
 
+# A best effort to ensure that no malicious rules are executed. This IS NOT an exhaustive list and cannot prevent bad behavior
+function Get-IsCommandSafe {
+  [CmdletBinding()]
   param
+  (
+    # All rules in rows
+    [Parameter(ValueFromPipeline = $true, Mandatory = $true)]
+    $Query
+  )
+  [String[]]$bad_keywords_regex =  '\s*drop\s+', '\s*alter\s+', '\s*create\s+', '\s*insert\s+into\s+\w+', '\s*select\s+into\s+\w+', '\s*delete\s+', `
+    '\s*shutdown', '\s*net\s+stop','\s*net\s+start\s+\w+', '\s*kill'
+
+  foreach ($keyword_regex in $bad_keywords_regex)
+  {
+    if ($Query-imatch $keyword_regex) {
+       
+      Write-Error "Rule to be executed contained an unsafe statement--query:$Query" 
+      return $false}
+  }
+  return $true
+}
+
 # Iterates over the Rules.csv and executes the command steps and captures results
 #      as mapped in each rule.
 function Process-Rules {
@@ -288,6 +309,15 @@ function Process-Rules {
 
   foreach ($rule in $Rules) {
 
+    # a BASIC check to prevent any malicious rules from being executed
+    if ((Get-IsCommandSafe $rule.Command) -eq $false)
+    {
+      Write-Error "Terminating execution."
+      Remove-SACConfig $InstanceID  $zone $SACEnabled
+      Send-SACCommand $GCPDetails "exit$($EOL)" ""
+      Exit
+    } 
+    
     # VM analysis progress bar
     $pct =  [math]::Round( $counter/$ruleCount*100)
     Write-Progress -Activity "$($finding.VMInstanceID) Analysis Progress" -Status "$pct% Complete:" -PercentComplete $pct
