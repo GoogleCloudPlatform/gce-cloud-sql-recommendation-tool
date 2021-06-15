@@ -469,7 +469,16 @@ foreach ($arg in $args)
   if ($argKeyVal[0].ToLower().Trim() -eq "projectid") {$projectID =$argKeyVal[1].Trim() }
   if ($argKeyVal[0].ToLower().Trim() -eq "instanceid") {$instanceID =$argKeyVal[1].Trim() }
   if ($argKeyVal[0].ToLower().Trim() -eq "user") {$user =$argKeyVal[1].Trim() }
+}
 
+if ($user -eq "")
+{
+  # This is the consent notification for auto-generating an administrative user
+  write-host "You did not provide an existing credential. By answering 'Yes' using your GCP permissions, the script will create an administrative user (GTCSRTSACUser). `
+  This user will be deleted at the end of the VM scan. This temporary admin user's password is randomly auto-generated. The password is not written or stored anywhere. `
+  Do you consent to this? (YES/NO): " -ForegroundColor Red -NoNewline
+  $consent = Read-Host
+  if ($consent.ToLower() -eq "y" -or $consent.ToLower() -eq "Yes") {} else {return}      
 }
 
 # If user arg was sent get the password and ensure one was provided
@@ -511,7 +520,7 @@ if ($IsLinux) {
 }
 # if Windows user get the authenticated user ID
 else {
-  $GCPUser = Invoke-Expression whoami
+  $GCPUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
   if ($GCPUser.Contains($PathSep)) { $GCPUser = $GcpUser.Split($PathSep)[1] }
 }
 
