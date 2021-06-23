@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-## GCE CloudSQL Recommendations Tool is an open-source project and not an officially supported Google product.
+## GCE Cloud SQL Recommendations Tool is an open-source project and not an officially supported Google product.
 
 # Solution Overview
 This tool provides modernization insights for moving self-managed SQL Server instances running on Google Compute Engine to fully managed Cloud SQL instances. The tool will identify features that are not offered in MS SQL Server on Linux and provide recommendations for how to implement the features on GCP along with a "ease of migration" score.
