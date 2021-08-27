@@ -1,0 +1,3 @@
+﻿Step,RuleCoverage,RuleName,CostBucket,AddOrSubtract,HaIsOnPrem,RuleFormula
+1,Each GCE VM,GCE VM Monthly Cost,GCE,Add,1,GetCost:[[Finding:Machine Type]]
+2,Each GCE VM,On Prem Instance Monthly Cost,GCE,Add,1,([[TCO]]/4) *
