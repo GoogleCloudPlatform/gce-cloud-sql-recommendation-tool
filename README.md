@@ -32,6 +32,9 @@ This tool provides modernization insights for moving self-managed SQL Server ins
   - [Single VM Analysis](#single-vm-analysis)
   - [Use Existing Windows Admin User](#use-existing-windows-admin-user)
   - [Alternate SQL Port](#alternate-sql-port)
+- [TCO Report Overview](#tco-report-overview)
+- [TCO Prerequisites](#tco-prerequisites)
+  - [\[OPTIONAL\] The Cloud Billing API must be enabled for the user. See here](#optional-the-cloud-billing-api-must-be-enabled-for-the-user-see-here)
 
 # GCE to Cloud SQL Recommendation Tool Usage
 The all of the functions executed as part of the GCE to Cloud SQL Recommendation Tool are executed directly from Github.
@@ -124,3 +127,11 @@ pwsh gtcsrt.ps1 user=[Windows Admin User]
 ```
 pwsh gtcsrt.ps1
 ```
+# TCO Report Overview
+The TCO scripts and rules work together to generate the TCO portion of Recommendation Report. The functionality references the configurable TCO_Rules.csv file to define the logic for TCO calculations. The Static_Costs.csv file provides fixed external costs related to GCE to Cloud SQL migrations. These are the costs that seldom change, or don't change frequently. The Pricelist.csv file contains the relevant GCP SKUs and costs that are used to calculate TCO. This file may be optionally updated by the user if the API is enabled.
+
+# TCO Prerequisites
+## \[OPTIONAL\] The Cloud Billing API must be enabled for the user. See [here](https://console.cloud.google.com/flows/enableapi?apiid=cloudbilling.googleapis.com&_ga=2.36380128.1573024191.1626792549-1593156018.1621974896)
+- Generate an API Key under API Credentials
+
+
