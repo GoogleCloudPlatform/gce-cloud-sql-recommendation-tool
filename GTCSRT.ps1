@@ -294,8 +294,32 @@ function Process-Rules {
   $finding.Description = "Machine Type"
   $finding.Result = $machineType
   $finding | Add-Finding
+  
+ # Get the Cores & RAM for the matching machine type
+ $machine=""
+ foreach ($mt in $machineTypes)
+ {
+    if ($mt.Contains($machineType))
+    {
+       $machine = $mt
+    }
+ }
+ $coresRAM = $machine -match "(\d)+\s+(\d\.\d+)"
+ $cores=$Matches[1]
+ $ram=$Matches[2]
 
-  # Matches the machine OS image type. Disk 0 is always the OS disk
+ $finding.Category = "VM"
+ $finding.Description = "Cores"
+ $finding.Result = $cores
+ $finding | Add-Finding
+
+ $finding.Category = "VM"
+ $finding.Description = "RAM (In GB)"
+ $finding.Result = $ram
+ $finding | Add-Finding
+
+
+  # Matches the SQL machine image type. Disk 0 is always the OS disk
   $osm = $vm.disks[0].licenses[0] -match "^.+/licenses/([a-z0-9-]+)$"
   $OSImage = $Matches[1]
   $finding.Category = "VM"
@@ -303,6 +327,24 @@ function Process-Rules {
   $finding.Result = $OSImage
   $finding | Add-Finding
 
+   # Matches the machine OS image type. Disk 0 is always the OS disk
+   $osm = $vm.disks[0].licenses[1] -match "^.+/licenses/([a-z0-9-]+)$"
+   $winOSImage = $Matches[1]
+   $finding.Category = "VM"
+   $finding.Description = "Windows OS Image"
+   $finding.Result = $winOSImage
+   $finding | Add-Finding
+   
+   foreach ($dsk in $vm.disks)
+   {
+     $totalStorage +=  [int]$dsk.diskSizeGb
+   }
+   # Gets the disk storageMatches the machine OS image type. Disk 0 is always the OS disk
+   $finding.Category = "VM"
+   $finding.Description = "Total VM Storage (In GB)"
+   $finding.Result = $totalStorage
+   $finding | Add-Finding
+ 
   # Used for the progress bar calculation
   $counter=0
   $ruleCount = $Rules.Count
@@ -491,7 +533,9 @@ $global:sacPw = "" # The existing Windows user password or the new one created f
 $global:projectID = ""
 $global:instanceID = ""
 $global:UserProvided = $false
-$global:user="" # THe user passed in as a command line argument or GCTSRTSACUser if not
+$global:user="" # The user passed in as a command line argument or GCTSRTSACUser if not
+$global:machineTypes=@() # The machine types file to get CPU and Memory
+
 
 # Get the command line arguments
 foreach ($arg in $args)
@@ -572,6 +616,7 @@ $zz=Archive-FindingsFile
 
 # Iterate through each project
 for ($proj = 0; $proj -lt $projects.count; $proj++) {
+ 
   # Project Loop
 
   $project = $projects[$proj]
@@ -586,6 +631,10 @@ for ($proj = 0; $proj -lt $projects.count; $proj++) {
 
   # Sends 'Y' if prompted for confirmation
   $vms = Invoke-Expression "'Y' | gcloud compute instances list --format json" *>&1 | ConvertFrom-Json
+  
+  # Get instance types in the project
+  $machineTypes = invoke-expression "gcloud beta compute machine-types list" *>&1
+
   if ( $global:LASTEXITCODE -gt 0) {
     Write-Error "Failed to list compute instances for project:  $($project.projectId)"
     Remove-SACConfig $InstanceID $zone $true
@@ -597,7 +646,6 @@ for ($proj = 0; $proj -lt $projects.count; $proj++) {
 
   for ($v = 0; $v -lt $vms.count; $v++) {
     # VM Loop
-
     $vm = $vms[$v]
 
     # If an InstanceID is passed to the script as an argument skip if there is no match
