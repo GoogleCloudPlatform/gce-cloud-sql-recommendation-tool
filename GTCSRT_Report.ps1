@@ -30,6 +30,17 @@ function Load-Findings {
     $f = Import-Csv "$AppPath$($PathSep)findings.csv"
     Write-Output $f
 }
+function Load-TCOResults {
+
+    $exists =Test-Path "$AppPath$($PathSep)TCO_Results.csv"
+    if (!$exists)
+    {
+        write-warning "No TCO_Results.csv to process--exiting"
+        exit 1
+    }
+    $f = Import-Csv "$AppPath$($PathSep)TCO_Results.csv"
+    Write-Output $f
+}
 
 # Loads the html report template that has the placeholders for sections and data fields
 function Get-ReportTemplate
@@ -127,7 +138,6 @@ function Get-IsSQLInstalled
         }
         else {return $false}
 }
-
 function Convert-TemplateBlock
 {
     [CmdletBinding()]
@@ -223,7 +233,6 @@ function Insert-HTMLBlock
 
     Write-Output $newHTML
 }
-
 # For a set of findings for the same VM and step #, get the one with highest score
 function Get-HightestScoreForStep
 {
@@ -311,7 +320,6 @@ function Get-VMEffort
     $effortPercent = [math]::round([float]($totalWeighted / $totalScore)*100)
     Write-Output $effortPercent
 }
-
 # Zips the css, images, and HTML report into  compressed zip file for easy download
 function package-html
 {
@@ -320,10 +328,10 @@ function package-html
     $paths = @("$($AppPath)$($PathSep)css","$($AppPath)$($PathSep)images")
 
      Compress-Archive -LiteralPath $paths -DestinationPath "$($AppPath)$($PathSep)Recommendations.zip" -Force
-     $html = Get-ChildItem -path "$($AppPath)$($PathSep)" | where-object {$_.name -like "*Recommendations.html"}
+     $html = Get-ChildItem -path "$($AppPath)$($PathSep)" | where-object {$_.name -like "*Recommendations.html" -or `
+        $_.name -eq "TCO_Results.csv" -or $_.name -eq "findings.csv"} 
      $html | Compress-Archive -update -DestinationPath "$($AppPath)$($PathSep)Recommendations.zip"
 }
-
 # Converts the findings.csv results into an HTML report
 function Convert-FindingsHTML {
     [CmdletBinding()]
@@ -332,7 +340,6 @@ function Convert-FindingsHTML {
         [Parameter(ValueFromPipeline = $true, Mandatory = $true)]
         $Findings
     )
-
     # These are the section tokens to be replaced in the HTML template
     $resultsStartToken ="<!-- START RESULTS -->"
     $projectStartToken ="<!-- START PROJECT -->"
@@ -389,7 +396,6 @@ function Convert-FindingsHTML {
             }
             $projCounter++
         }
-
         # New VM started
         if ($finding.VMInstanceID -ne $lastVM)
         {
@@ -457,6 +463,24 @@ function Convert-FindingsHTML {
 
     # Update any page-level dynamic fields
     $page = Convert-TemplateBlock  $Findings  $page @("[[Dyn_NumberOFEasy]]=$easyMigrations" )
+    
+    # Add TCO Summart as Dynamic Links
+    $tcoResults = Load-TCOResults
+    $tcoStats = $tcoResults[0]
+    $gceCost = ([int]$tcoStats.Total_GCE_Cost)  *12
+    $page = Convert-TemplateBlock  $Findings  $page @("[[Total_GCE_Cost]]=$('{0:C}' -f $gceCost )" )
+    
+    $csqlCost = ([int]$tcoStats.Total_CSQL_Cost)  *12
+    $page = Convert-TemplateBlock  $Findings  $page @("[[Total_SQL_Cost]]=$('{0:C}' -f $csqlCost )" )
+
+    $csqBenefit = ([int]$tcoStats.Total_GCE_vs_CSQL_TCO)  
+    $page = Convert-TemplateBlock  $Findings  $page @("[[Total_GCE_vs_CSQL_TCO]]=$($csqBenefit)%" )
+
+    $page = Convert-TemplateBlock  $Findings  $page @("[[TCO Link]]=TCO_Results.csv" )
+
+    $page = Convert-TemplateBlock  $Findings  $page @("[[Findings Link]]=findings.csv" )
+    
+
     Write-Output $page
 }
 $global:AppPath = $myinvocation.mycommand.Path | Split-Path -Parent

@@ -1,8 +1,2 @@
-﻿CostType,Freq,UnitType,Cost
-SQL Server Enterprise license cost per 2 cores,Perpetual,Each,14256
-SQL Server Standard license cost per 2 cores,Perpetual,Each,3717
-Enterprise Software Assurance cost per 2 cores,Perpetual,Each,3546
-Standard Software Assurance cost per 2 cores,Perpetual,Each,929.25
-On-Prem Server Cost Per Core,Perpetual,Each,220
-On-Prem Server Cost Per GM RAM,Perpetual,Each,75
-On-Prem Server Cost Per Core,Perpetual,Each,
+﻿CostType,Freq,UnitType,UnitMeasure,Cost
+DB Admin Labor,Perpetual,Each,Hour,42

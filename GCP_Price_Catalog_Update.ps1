@@ -17,7 +17,7 @@
 $global:PathSep = (join-path -Path "a" -ChildPath "b").Substring(1, 1); # X-platform path seperator character
 $global:AppPath = $myinvocation.mycommand.Path | Split-Path -Parent # Path the script is executing out of
 
-$apiKey ="AIzaSyDnTbC19JdleyIB1acbGm1KNdK9M46A2Fc";
+$apiKey ="";
 
 
 foreach ($arg in $args)
@@ -61,12 +61,12 @@ foreach ($svc in $svcs)
         
         if (!$npt) {
             $csqlResp = Invoke-WebRequest -URI https://cloudbilling.googleapis.com/v1/services/$($svc.serviceId)/skus?key=$apiKey | ConvertFrom-Json 
-            $skus+=$csqlResp.skus #| where {$_.description -like "*SQL Server*"}
+            $skus+=$csqlResp.skus 
         } 
         else 
         {
             $csqlResp = Invoke-WebRequest -URI "https://cloudbilling.googleapis.com/v1/services/$($svc.serviceId)/skus?key=$apiKey&pageToken=$npt" | ConvertFrom-Json 
-            $skus+=$csqlResp.skus #| where {$_.description -like "*SQL Server*"}
+            $skus+=$csqlResp.skus 
         }
         $npt = $computeResp.nextPageToken
     } while ($npt -ne "")   
@@ -96,11 +96,11 @@ for ($counter = 0; $counter -lt $skus.length; $counter++)
         Unit =  $skus[$counter].pricingInfo.pricingExpression.tieredRates[0].unitPrice.units
         Nanos = $skus[$counter].pricingInfo.pricingExpression.tieredRates[0].unitPrice.nanos
         GeoTaxonomy = $skus[$counter].geoTaxonomy.type
-        PricePerHour =""
+        PricePerUsageUnit = [float]0.0
     }
+    $GCPPricing.PricePerUsageUnit = [int]$GCPPricing.Unit +  ( [int]$GCPPricing.Nanos/1000000000)
     $gcpSkus.Add($GCPPricing) >$null 2>&1
 }
 $gcpSkus | Export-Csv "$AppPath$($PathSep)GCP_Ondemand_Pricing.csv" -Force
 
 Write-Output ""
-#$response

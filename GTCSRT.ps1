@@ -296,26 +296,67 @@ function Process-Rules {
   $finding | Add-Finding
   
  # Get the Cores & RAM for the matching machine type
- $machine=""
- foreach ($mt in $machineTypes)
+ $machine, $cores, $ram, $instGen, $instType=""
+ 
+ # Standard machine shage parse out cores & RAM
+ if (!$machineType.Contains("custom"))
  {
+  $genType = $machineType -match "(\w\d\w?)-(\w+)"
+  $instGen = $Matches[1]
+  $instType = $Matches[2]
+
+  # Search for the matching machine type
+  foreach ($mt in $machineTypes)
+  {   
     if ($mt.Contains($machineType))
     {
        $machine = $mt
     }
+   $coresRAM = $machine -match "[a-z0-9\-]+\s+[a-z0-9\-]+\s+(\d+)\s+(\d+\.\d+)"
+   $cores=$Matches[1]
+   $ram=$Matches[2]
+  }
  }
- $coresRAM = $machine -match "(\d)+\s+(\d\.\d+)"
- $cores=$Matches[1]
- $ram=$Matches[2]
+ # If it's a custom image parse-out the cores, RAM, and instance type
+ else {
+   $coresRamGen = $machineType -match "(\w\d)-(\w+)-(\d+)-(\d+)"
+   $cores=[int]$Matches[3]
+   $ram=[math]::ceiling([int]$Matches[4]/1000)
+   $instGen = $Matches[1]
+   $instType = $Matches[2]
+ }
+  
+ $finding.Category = "VM"
+ $finding.Description = "Instance Generation"
+ $finding.Result = $instGen
+ $finding | Add-Finding
+
+ $finding.Category = "VM"
+ $finding.Description = "Instance Type"
+ $finding.Result = $instType
+ $finding | Add-Finding
 
  $finding.Category = "VM"
  $finding.Description = "Cores"
  $finding.Result = $cores
+ $finding.Scored ="yes"
+ if ([int]$cores -gt 96 )
+ { 
+   $finding.Score = 3
+   $finding.Recommendation ="Evaluate workloads to see if high demand workloads can be spread across Cloud SQL instances."
+ }
  $finding | Add-Finding
 
+ 
  $finding.Category = "VM"
  $finding.Description = "RAM (In GB)"
  $finding.Result = $ram
+ $finding.Scored ="yes"
+ if ([int]$ram -gt 624 )
+ { 
+   $finding.Score = 3
+   $finding.Recommendation ="Evaluate workloads to see if high demand workloads can be spread across Cloud SQL instances."
+ }
  $finding | Add-Finding
 
 
@@ -335,16 +376,53 @@ function Process-Rules {
    $finding.Result = $winOSImage
    $finding | Add-Finding
    
-   foreach ($dsk in $vm.disks)
+   enum DiskTypeByCost
    {
-     $totalStorage +=  [int]$dsk.diskSizeGb
+    standard = 1
+    balanced = 2
+    ssd = 3
+    extreme = 4
+  }
+     
+  # as TCO is not exhuastive across all disks, we are concerned with the most expensive storage type
+  $highestPriceLevel=-1 
+  foreach ($dsk in $vm.disks)
+   {
+    for ($ctr =1; $ctr -lt $diskTypes.count; $ctr++) 
+    {      
+      $diskInfo = $diskTypes[$ctr] -match "([a-zA-Z0-9\-]+)\s+[a-zA-Z0-9\-]+\s+([a-zA-Z0-9]+)\s+\d+\s+(.+)\s+"
+        if ( $Matches[1] -eq $dsk.deviceName)
+        {
+          $short = $Matches[3].Replace("pd-","").Trim()
+          $diskpriceLevel = [DiskTypeByCost]::$short.value__
+          if ($diskPriceLevel -gt $highestPriceLevel)
+          {
+            $highestPriceLevel = $diskPriceLevel
+          }
+          break;
+        }
+      }
+    $totalStorage +=  [int]$dsk.diskSizeGb
    }
-   # Gets the disk storageMatches the machine OS image type. Disk 0 is always the OS disk
+   
+   # Gets the total storage for all disks on the VM
    $finding.Category = "VM"
    $finding.Description = "Total VM Storage (In GB)"
    $finding.Result = $totalStorage
+   $finding.Scored ="yes"
+   if ([int]$totalStorage -gt 64000 )
+   { 
+     $finding.Score = 3
+     $finding.Recommendation ="Evaluate workloads to see if high demand workloads can be spread across Cloud SQL instances."
+   }
    $finding | Add-Finding
- 
+
+   # Gets the most expensive disk type attached to the VM
+   $finding.Category = "VM"
+   $finding.Description = "Storage Type"
+   $finding.Result = "pd-" + [DiskTypeByCost].getEnumName($highestPriceLevel)
+   $finding | Add-Finding
+  
   # Used for the progress bar calculation
   $counter=0
   $ruleCount = $Rules.Count
@@ -535,6 +613,9 @@ $global:instanceID = ""
 $global:UserProvided = $false
 $global:user="" # The user passed in as a command line argument or GCTSRTSACUser if not
 $global:machineTypes=@() # The machine types file to get CPU and Memory
+$global:diskTypes=@() # Disk types to determine media performance
+
+
 
 
 # Get the command line arguments
@@ -634,6 +715,9 @@ for ($proj = 0; $proj -lt $projects.count; $proj++) {
   
   # Get instance types in the project
   $machineTypes = invoke-expression "gcloud beta compute machine-types list" *>&1
+  
+  # Get disk details
+  $diskTypes = invoke-expression "gcloud compute disks list" *>&1
 
   if ( $global:LASTEXITCODE -gt 0) {
     Write-Error "Failed to list compute instances for project:  $($project.projectId)"

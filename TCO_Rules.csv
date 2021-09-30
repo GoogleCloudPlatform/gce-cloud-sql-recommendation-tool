@@ -1,3 +1,19 @@
-﻿Step,RuleCoverage,RuleName,CostBucket,AddOrSubtract,HaIsOnPrem,RuleFormula
-1,Each GCE VM,GCE VM Monthly Cost,GCE,Add,1,GetCost:[[Finding:Machine Type]]
-2,Each GCE VM,On Prem Instance Monthly Cost,GCE,Add,1,([[TCO]]/4) *
+﻿Step,RuleCoverage,RuleName,RuleProcedure,CostBucket,RatioOfOnDemand,RuleVariables,RuleVariableDescription,CSQLUnitRatio,CSQLUniitRatioDescription
+1,Each,GCE CPU Monthly Cost,Write-GCECPUMonthlyCost,GCE,1,hours=730,,NA,
+2,Each,GCE RAM Monthly Cost,Write-GCERAMMonthlyCost,GCE,1,hours=730,,NA,
+3,Each,GCE Storage Monthly Cost,Write-GCEStorageMonthlyCost,GCE,1,"hours=730,IOPS=30000","IOPS=If extreme PD, # of Provisioned IOPS",NA,
+4,Each,GCE OS Lic Monthly Cost,Write-GCEOSLicMonthlyCost,GCE,1,hours=730,,NA,
+5,Each,GCE SQL Lic Monthly Cost,Write-GCESQLicMonthlyCost,GCE,1,hours=730,,NA,
+6,Each,GCE DB Maint Labor Monthly Cost,Write-GCEDBMaintMonthlyCost,GCE,Static,LaborHoursPerDBPerMonth=5,,NA,
+7,Each,CSQL CPU Monthly Cost,Write-CSQLCPUMonthlyCost,CSQL,1,hours=730,,1,Ratio of GCE CPU to CSQL CPU
+8,Each,CSQL RAM Monthly Cost,Write-CSQLRAMMonthlyCost,CSQL,1,hours=730,,1,Ratio of GCE RAM to CSQL RAM
+9,Each,CSQL Storage Monthly Cost,Write-CSQLStorageMonthlyCost,CSQL,1,hours=730,,10,Ratio of Acture SQL Server Storage Used to CSQL Storage
+10,Each,CSQL SQL Server Monthly Lic Cost,Write-CSQLLicMonthlyCost,CSQL,0.79,hours=730,,1,Ratio of GCE CPU to CSQL CPU
+11,Each,Total GCE Instance Cost,Write-TotalGCEInstanceCost,Subtotal,,,,,
+12,Each,Total CSQL Instance Cost,Write-TotalCSQLInstanceCost,Subtotal,,,,,
+13,Each,Diff GCE Minus CSQL Cost,Write-GCEMinusCSQLCost,Difference,,,,,
+14,Each,PCT GCE vs CSQL TCO,Write-GCEVSCSQLTCO,Percentage,,,,,
+15,All,Total GCE Cost,Write-TotalGCECost,GrandTotal,,,,,
+16,All,Total CSQL Cost,Write-TotalCSQLCost,GrandTotal,,,,,
+17,All,Total GCE Minus CSQL Cost,Write-TotalGCEMinusCSQL,GrandTotal,,,,,
+18,All,Total GCE vs CSQL TCO,Write-TotalGCEVSSQLTCO,Percentage,,,,,

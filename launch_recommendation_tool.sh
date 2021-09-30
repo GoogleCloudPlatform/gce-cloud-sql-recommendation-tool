@@ -30,4 +30,5 @@ wget --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' ht
 wget -P css/ --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/css/simpleGridTemplate.css
 wget -P images/ --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/images/google-cloud-sql.png
 pwsh ./GTCSRT.ps1
+pwsh ./GTCSRT_TCO.ps1
 pwsh ./GTCSRT_Report.ps1

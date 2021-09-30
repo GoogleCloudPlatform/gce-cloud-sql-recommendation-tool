@@ -35,6 +35,8 @@ This tool provides modernization insights for moving self-managed SQL Server ins
 - [TCO Report Overview](#tco-report-overview)
 - [TCO Prerequisites](#tco-prerequisites)
   - [\[OPTIONAL\] The Cloud Billing API must be enabled for the user. See here](#optional-the-cloud-billing-api-must-be-enabled-for-the-user-see-here)
+- [Optional TCO Features & Configuration](#optional-tco-features--configuration)
+  - [Optionally a user can update the On-Demand pricing tables with a user enabled billing catalog API key](#optionally-a-user-can-update-the-on-demand-pricing-tables-with-a-user-enabled-billing-catalog-api-key)
 
 # GCE to Cloud SQL Recommendation Tool Usage
 The all of the functions executed as part of the GCE to Cloud SQL Recommendation Tool are executed directly from Github.
@@ -132,6 +134,12 @@ The TCO scripts and rules work together to generate the TCO portion of Recommend
 
 # TCO Prerequisites
 ## \[OPTIONAL\] The Cloud Billing API must be enabled for the user. See [here](https://console.cloud.google.com/flows/enableapi?apiid=cloudbilling.googleapis.com&_ga=2.36380128.1573024191.1626792549-1593156018.1621974896)
-- Generate an API Key under API Credentials
+
+# Optional TCO Features & Configuration
+## Optionally a user can update the On-Demand pricing tables with a user enabled billing catalog API key
+- At the Cloud Shell prompt update the On-Demand pricing table with the following command
+```
+pwsh GCP_Price_Catalog_Update.ps1 apikey=[API Key]
+```
 
 
