@@ -34,8 +34,7 @@ This tool provides modernization insights for moving self-managed SQL Server ins
   - [Alternate SQL Port](#alternate-sql-port)
 
 # GCE to Cloud SQL Recommendation Tool Usage
-The all of the functions executed as part of the GCE to Cloud SQL Recommendation Tool are executed directly from Github.
-
+All of the functions included in the GCE to Cloud SQL Recommendation Tool can be run directly from Github.
 
 - Step 1: Login to GCP Console
 
@@ -52,12 +51,12 @@ The all of the functions executed as part of the GCE to Cloud SQL Recommendation
 wget --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/launch_recommendation_tool.sh
 ```
 
-- Step 5: Run script to install Powershell on Cloud Shell instance
+- Step 5: Run script to install Powershell on Cloud Shell and automatically run the tool on all the projects that you have access
 ```
 bash launch_recommendation_tool.sh
 ```
  !["Image of Cloud Shell Console highlighting a progress bar showing the status of the analysis"](Readme/progress.png)
-- Step 6: When the script completes, click the Cloud Shell elipse and select **download**
+- Step 6: When the script completes, click the Cloud Shell elipse and select **download** to download the results of the tool analysis
  !["Image of Cloud Shell Console highlighting an elipse and the download dropdown opton"](Readme/CloudShellDownload.png)
 
 - Step 7: Enter **Recommendations.zip** and click the **Download** button
@@ -68,12 +67,13 @@ bash launch_recommendation_tool.sh
 - Step 9: Open the uncompressed **GCE_To_Cloud_SQL_Recommendations.html** file to view the results of the analysis
 
 # Prerequisites
-## Google Cloud Persmissions
-- compute.admin
-- Compute Service Account w/Service Account User permission
-- The **compute.disableSerialPortAccess** policy constraint must not be enabled
+## Google Cloud Permissions
+- The account running the script must have:
+  - Compute.admin permission
+  - "Service Account User" permission on the service account that runs Compute Engine
+- The policy **compute.disableSerialPortAccess** must not be enabled
 ## RSA SSH Key
-- The script user should have an RSA SSH key at the project or instance level. The script will attempt to create one for the script user if one is not present; however, this mail fail based on policy configuration.
+- The script user should have an RSA SSH key at the project or instance level. The script will attempt to create one for the script user if one is not present; however, this may fail based on policy configuration.
 
 ## OS Configuration
 - SQL Server must have **Windows Auth** or **Mixed Mode** enabled
@@ -82,27 +82,30 @@ bash launch_recommendation_tool.sh
 # Application Flow
 1. Script iterates over all projects the script user has access to
 2. Script iterates through all VMs on each project
-3. Script looks at the OS image to determine if it is Windows OS
-4. If Windows OS, adds the GTCSRTSAC admininstrative user to the VM (stores password in memory only). **Note:** if the **User=** paramater is passed the script will use this administrative user.
+3. Script looks at the OS image to determine if it is a Windows OS
+4. If Windows OS, it adds the GTCSRTSAC admininstrative user to the VM (stores password in memory only). **Note:** if the **User=** paramater is passed the script will use this administrative user.
 5. Records the state of the Serial Access Console (SAC) configuration
 6. If SAC is not enabled on the VM, script enables SAC access
 7. Script executes commands for each step in the Rules.csv definition (if marked as enabled)
 8. Results for each step's commands are stored in the Findings.csv file
 9. After all steps have completed the GTCSRTSAC administrative user is deleted from the VM
-10. The SAC configuration is returned to it's original configuration for the VM (no change if it was alearedy enabled)
+10. The SAC configuration is returned to it's original configuration for the VM (no changes if it was already enabled)
 11. The Findings.csv file is parsed to generate an HTML report of the recommendations
 12. The css, images and HTML are compressed into a Zip file for easy download
 
 # Security Considerations
-The analysis of SQL Server configurations requires administrative access to each VM to be evaluated for potential migrations to Cloud SQL. All commands to be executed on the VM through the SAC port are stored in the Rules.csv files (**Note:** net user /delete GTCSRTSACUser is not listed in the rules). Administrative Windows access is required to:
+The analysis of SQL Server configurations requires administrative access to each VM to be evaluated for potential migrations to Cloud SQL. All commands to be executed on the VM through the SAC port are stored in the Rules.csv files (**Note:** net user /delete GTCSRTSACUser is not listed in the rules). 
+
+Administrative Windows access is required to:
 - Access the Serial Access Console on each VM
 - The GTCSRTSACUser administrative Windows user will have access to run queries that read metadata about the SQL Server Database usomg SQLCmd. **Note:** if the **User=** paramater is passed the script will use this administrative user.
-- The GTCSRTSACUser adminstrative user is able to list running processes to search for SQL-related processes. **Note:** if the **User=** paramater is passed the script will use this administrative user.
-- The GTCSRTSACUser administrative user is able to query the registry for installed SQL apps. **Note:** if the **User=** paramater is passed the script will use this administrative user.
-- The GTCSRTSACUser administrative user is able to capture perform counters related to SQL Server. **Note:** if the **User=** paramater is passed the script will use this administrative user.
+- The GTCSRTSACUser adminstrative user is able to list running processes to search for SQL-related processes. **Note:** if the **User=** parameter is passed the script will use this user instead.
+- The GTCSRTSACUser administrative user is able to query the registry for installed apps. **Note:** if the **User=** parameter is passed the script will use this user instead.
+- The GTCSRTSACUser administrative user is able to capture perform counters related to SQL Server. **Note:** if the **User=** parameter is passed the script will use this user instead.
 - The results of each command are stored in the Findings.csv (i.e. this is the only place results are stored). The majority of results are counts of database objects or performance counters (i.e. numeric data).
 
 # Optional Features & Configuration
+**Note:** You will need to run "bash launch_recommendation_tool.sh" at least once before running any of the commands below. The shell script will install PowerShell and download the code to run the commands below. You can stop the shell script if you don't want to analyze all projects once it start analyzing all the projects.
 ## Single Project Analysis (all VMs in project analyzed)
 - At the Cloud Shell prompt start the GTCSRT tool with the following command line arguements
 ```
