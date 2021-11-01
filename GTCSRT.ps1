@@ -36,10 +36,12 @@ function Send-SACCommand {
     $Remark
   )
 
-  # establishes an SSH connection to the SAC serial port
-  $sshString = "ssh -T -p 9600 -i {0} -o CheckHostIP=no -o ControlPath=none -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile={1} {2}.{3}.{4}.{5}.Port=2@ssh-serialport.googleapis.com" -f `
-    $GCPDetails.PrivateKeyLocation , $GCPDetails.KnownHostsLocation, `
-    $GCPDetails.ProjectID, $GCPDetails.Zone, $GCPDetails.VMInstanceID, $GCPDetails.GCPUser;
+  # Create ssh command to connect to serial port
+  $gcloudString = "gcloud compute connect-to-serial-port {0} --port 2 --zone {1} --project {2} --dry-run" -f `
+  $GCPDetails.VMInstanceID, $GCPDetails.Zone, $GCPDetails.ProjectID
+  #Write-Host "gcloudString: $gcloudString"
+  $sshString = Invoke-Expression $gcloudString
+  #Write-Host "sshString: $sshString"
 
   $remarkString = "rem ~~~{0}" -f , $Remark;
   $sacRemarkString = "echo '{0}'|{1}" -f $remarkString, $sshString
@@ -612,14 +614,14 @@ for ($proj = 0; $proj -lt $projects.count; $proj++) {
 
     # Skip VM if neither license is Windows
     if ($lisc[0] -notlike "windows*" -and $lisc[1] -notlike "windows*" ) {
-      Write-host "Will not analyze $($vm.Name). Disk image: $($lisc[1] ?? $lisc[0])"
+      Write-host "`nWill not analyze $($vm.Name). Disk image: $($lisc[1] ?? $lisc[0])"
       continue;
     }
     elseif ($lisc[0] -like ("sql*")) {
-      Write-host "Analyzing $($vm.Name). Premium SQL disk image: $lisc[0]"
+      Write-host "`nAnalyzing $($vm.Name). Premium SQL disk image: $lisc[0]"
     }
     else {
-      Write-host "Analyzing $($vm.Name). Disk image: $lisc[0]"
+      Write-host "`nAnalyzing $($vm.Name). Disk image: $lisc[0]"
     }
 
     # Capture the zone from the VM
