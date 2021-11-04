@@ -582,16 +582,18 @@ for ($proj = 0; $proj -lt $projects.count; $proj++) {
   # If a project ID is provided as an arg ignore any that does not match
   if ($projectID -ne "" -and $project.projectid -ne $projectID) { continue; }
 
-  Write-host "Looking for Windows VMs in project:$($project.projectId)"
+  Write-host "`nLooking for Windows VMs in project: $($project.projectId)"
 
   $zz =  Invoke-Expression "gcloud config set project $($project.projectId)" *>&1
 
   # Sends 'Y' if prompted for confirmation
-  $vms = Invoke-Expression "'Y' | gcloud compute instances list --format json" *>&1 | ConvertFrom-Json
+  $vms = Invoke-Expression "'Y' | gcloud compute instances list --filter status:RUNNING --format json" *>&1 | ConvertFrom-Json
   if ( $global:LASTEXITCODE -gt 0) {
-    Write-Error "Failed to list compute instances for project:  $($project.projectId)"
+    Write-Error "Failed to list compute instances for project: $($project.projectId)"
+    Write-Host "`nTry running this command instead on projects where you have access:"
+    Write-Host "   pwsh GTCSRT.ps1 projectid=[Project ID]`n"
     Remove-SACConfig $InstanceID $zone $true
-    return
+    exit 1
   }
 
   # If there are no VMs in project then move to the next project
