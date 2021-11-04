@@ -19,7 +19,7 @@ limitations under the License.
 
 
 # Solution Overview
-This tool provides modernization insights for moving self-managed SQL Server instances running on Google Compute Engine to fully managed Cloud SQL instances. The tool will identify features that are not offered in MS SQL Server on Linux and provide recommendations for how to implement the features on GCP along with a "ease of migration" score.
+This tool provides modernization recommendations for migrating self-managed SQL Server instances on Google Compute Engine to fully managed Cloud SQL instances. The tool will identify features not available in MS SQL Server on Linux and make recommendations for how to implement them on Google Cloud, as well as a score for "ease of migration."
 
 - [Solution Overview](#solution-overview)
 - [GCE to Cloud SQL Recommendation Tool Usage](#gce-to-cloud-sql-recommendation-tool-usage)
@@ -53,11 +53,15 @@ All of the functions included in the GCE to Cloud SQL Recommendation Tool can be
 wget --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/launch_recommendation_tool.sh
 ```
 
-- Step 5: Run script to install Powershell on Cloud Shell and automatically run the tool on all the projects that you have access
+- Step 5: Run script to install Powershell on Cloud Shell and automatically run the tool on all the projects that you have access.   
+   Note: To run the tool on a single project see the section "Optional Features & Configuration".
 ```
 bash launch_recommendation_tool.sh
 ```
- !["Image of Cloud Shell Console highlighting a progress bar showing the status of the analysis"](Readme/progress.png)
+
+- Below is a screenshot of the tool running:
+!["Image of Cloud Shell Console highlighting a progress bar showing the status of the analysis"](Readme/progress.png)
+
 - Step 6: When the script completes, click the Cloud Shell elipse and select **download** to download the results of the tool analysis
  !["Image of Cloud Shell Console highlighting an elipse and the download dropdown opton"](Readme/CloudShellDownload.png)
 
@@ -107,25 +111,36 @@ Administrative Windows access is required to:
 - The results of each command are stored in the Findings.csv (i.e. this is the only place results are stored). The majority of results are counts of database objects or performance counters (i.e. numeric data).
 
 # Optional Features & Configuration
-**Note:** You will need to run "bash launch_recommendation_tool.sh" at least once before running any of the commands below. The shell script will install PowerShell and download the code to run the commands below. You can stop the shell script if you don't want to analyze all projects once it start analyzing all the projects.
+## Note about running the commands below
+When you run the command "**bash launch_recommendation_tool.sh**", it will download the code, install Powershell and analyze all your projects. The commands in this section expect that you already downloaded the code and installed Powershell. If you have not run the launch_recommendation_tool.sh yet, you can run it with the "-d" parameter to just download the code and install Powershell without analyzing all your projects. See example below:
+```
+bash launch_recommendation_tool.sh -d
+````
+You are now ready to run the commands in this section. 
+
 ## Single Project Analysis (all VMs in project analyzed)
 - At the Cloud Shell prompt start the GTCSRT tool with the following command line arguements
 ```
-pwsh gtcsrt.ps1 projectid=[Project ID]
+pwsh GTCSRT.ps1 projectid=[Project ID]
 ```
 ## Single VM Analysis
 - At the Cloud Shell prompt start the GTCSRT tool with the following command line arguements
 ```
-pwsh gtcsrt.ps1 projectid=[Project ID] instanceid=[VM Instance Name]
+pwsh GTCSRT.ps1 projectid=[Project ID] instanceid=[VM Instance Name]
 ```
 ## Use Existing Windows Admin User
-- An exsiting Windows administrative user can be used in single VM, single project, or all project/all VM analysis mode.
+- An existing Windows administrative user can be used in single VM, single project, or all project/all VM analysis mode.
 ```
-pwsh gtcsrt.ps1 user=[Windows Admin User]
+pwsh GTCSRT.ps1 user=[Windows Admin User]
 ```
 ## Alternate SQL Port
 - In the Rules.csv file do a search and replace to replace **1433** with the desired SQL port
-- Execute the script
+- Then execute the script
 ```
-pwsh gtcsrt.ps1
+pwsh GTCSRT.ps1
+```
+## Generate the report
+- After running any of the commands above, run this command to generate the report and save it as an archive called Recommendations.zip.
+```
+pwsh GTCSRT_Report.ps1
 ```
