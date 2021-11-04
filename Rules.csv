@@ -3,7 +3,7 @@ step,step_enabled,description,category,command,regex,has_score,low_impact_result
 1,yes,SQL Server Installed,Install,"reg query ""HKLM\Software\Microsoft\Microsoft SQL Server\",InstalledInstances\s+\w+_SZ\s+(\w+\\*\w*)HKEY,no,,,,,,
 1,yes,Is BYOL,Install,,,no,,,,,,
 2,yes,SQLCmd Is Installed,Install,sqlcmd -?,\[-(Y) fixed length,no,,,,,,
-2,yes,SQL Instance Name,Install,"sqlcmd -H localhost,1433 -I  -w 200 -Q ""select @@servicename;""",---\s*(\w+\$*\w+):.+\(\d+\srows,no,,,,,,
+2,yes,SQL Instance Name,Install,"sqlcmd -H localhost,1433 -I -Q ""select @@servicename;""",---\s*(\w.+)\(\d+\srows,no,,,,,,
 3,yes,SQL Version String,Server,"sqlcmd -H localhost,1433 -I -Q ""select @@version;""",---\s*(\w.+)\(\d+\srows,no,,,,,,
 4,yes,SQL Edition,Server,"sqlcmd -H localhost,1433 -I -Q ""select @@version;""",---\s*.+Corporation\s*(\D+)\s\(,no,,,,,,
 5,yes,Version Complexity,Server,"sqlcmd -H localhost,1433 -I -Q ""select @@version;""",---\s*\w.+Server (20\d\d).+\(\d+\srows,yes,-le 2016,-le 2012,-le 2008,Use SQL Server to backup and restore to SQL target version (e.g. 2017),Use SQL Server to backup and restore to SQL target version (e.g. 2017),Use SQL Server to backup and restore to SQL target version (e.g. 2017)
