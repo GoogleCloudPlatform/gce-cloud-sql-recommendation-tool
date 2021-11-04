@@ -15,19 +15,39 @@
 # limitations under the License.
 
 
+# Check if we only want to download the code and install Powershell
+while getopts ":d" opt; do
+  case ${opt} in
+    d ) download=true
+      ;;
+    \? ) echo "Usage: bash launch_recommendation_tool.sh [-d]"
+         echo " [-d] : Download code and install Powershell but don't run the scripts"
+         exit
+      ;;
+  esac
+done
+
 set -x
 
+# Install Powershell
 sudo dpkg --remove packages-microsoft-prod
-
-wget https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb
+wget -nc https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb
 sudo dpkg -i packages-microsoft-prod.deb
 sudo apt-get update
 sudo apt install powershell -y
-wget --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/GTCSRT.ps1
-wget --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/GTCSRT_Report.ps1
-wget --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/Rules.csv
-wget --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/GTCSRT_Template.html
-wget -P css/ --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/css/simpleGridTemplate.css
-wget -P images/ --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/images/google-cloud-sql.png
-pwsh ./GTCSRT.ps1
-pwsh ./GTCSRT_Report.ps1
+
+# Download scripts
+wget -nc --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/GTCSRT.ps1
+wget -nc --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/GTCSRT_Report.ps1
+wget -nc --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/Rules.csv
+wget -nc --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/GTCSRT_Template.html
+wget -nc -P css/ --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/css/simpleGridTemplate.css
+wget -nc -P images/ --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/images/google-cloud-sql.png
+
+# Exit if we just want to download the scripts
+if [[ "${download}" == "true" ]] ; then
+  exit
+fi
+
+# Run the recommendation tool and generate a report
+pwsh ./GTCSRT.ps1 && pwsh ./GTCSRT_Report.ps1
