@@ -24,7 +24,7 @@ This tool provides modernization recommendations for migrating self-managed SQL 
 - [Solution Overview](#solution-overview)
 - [GCE to Cloud SQL Recommendation Tool Usage](#gce-to-cloud-sql-recommendation-tool-usage)
 - [Prerequisites](#prerequisites)
-  - [Google Cloud Persmissions](#google-cloud-persmissions)
+  - [Google Cloud Permissions](#google-cloud-permissions)
   - [RSA SSH Key](#rsa-ssh-key)
   - [OS Configuration](#os-configuration)
 - [Application Flow](#application-flow)
@@ -43,7 +43,7 @@ All of the functions included in the GCE to Cloud SQL Recommendation Tool can be
 - Step 2: Launch Cloud Shell in Console
   !["Image of Cloud Shell Console highlighting an icon with a greater-than and underscore"](Readme/CloudShell.png)
 
-- Step 3: Login with an account that has persmissions to the projects containing SQL VMs
+- Step 3: Login with an account that has permissions to the projects containing SQL VMs
   ```
   gcloud auth login
   ```
@@ -53,7 +53,7 @@ All of the functions included in the GCE to Cloud SQL Recommendation Tool can be
 wget --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/launch_recommendation_tool.sh
 ```
 
-- Step 5: Run script to install Powershell on Cloud Shell and automatically run the tool on all the projects that you have access.   
+- Step 5: Run script to install Powershell on Cloud Shell and automatically run the tool on all the projects that you have access to.   
    Note: To run the tool on a single project see the section "Optional Features & Configuration".
 ```
 bash launch_recommendation_tool.sh
@@ -89,13 +89,13 @@ bash launch_recommendation_tool.sh
 1. Script iterates over all projects the script user has access to
 2. Script iterates through all VMs on each project
 3. Script looks at the OS image to determine if it is a Windows OS
-4. If Windows OS, it adds the GTCSRTSAC admininstrative user to the VM (stores password in memory only). **Note:** if the **User=** paramater is passed the script will use this administrative user.
+4. On Windows OS, it adds the GTCSRTSAC admininstrative user to the VM (stores password in memory only). **Note:** if the **User=** parameter is passed the script will use this administrative user.
 5. Records the state of the Serial Access Console (SAC) configuration
 6. If SAC is not enabled on the VM, script enables SAC access
 7. Script executes commands for each step in the Rules.csv definition (if marked as enabled)
 8. Results for each step's commands are stored in the Findings.csv file
 9. After all steps have completed the GTCSRTSAC administrative user is deleted from the VM
-10. The SAC configuration is returned to it's original configuration for the VM (no changes if it was already enabled)
+10. The SAC configuration is returned to its original configuration for the VM (no changes if it was already enabled)
 11. The Findings.csv file is parsed to generate an HTML report of the recommendations
 12. The css, images and HTML are compressed into a Zip file for easy download
 
@@ -104,10 +104,10 @@ The analysis of SQL Server configurations requires administrative access to each
 
 Administrative Windows access is required to:
 - Access the Serial Access Console on each VM
-- The GTCSRTSACUser administrative Windows user will have access to run queries that read metadata about the SQL Server Database usomg SQLCmd. **Note:** if the **User=** paramater is passed the script will use this administrative user.
-- The GTCSRTSACUser adminstrative user is able to list running processes to search for SQL-related processes. **Note:** if the **User=** parameter is passed the script will use this user instead.
+- The GTCSRTSACUser administrative Windows user will have access to run queries that read metadata about the SQL Server Database using SQLCmd. **Note:** if the **User=** parameter is passed the script will use this administrative user.
+- The GTCSRTSACUser administrative user is able to list running processes to search for SQL-related processes. **Note:** if the **User=** parameter is passed the script will use this user instead.
 - The GTCSRTSACUser administrative user is able to query the registry for installed apps. **Note:** if the **User=** parameter is passed the script will use this user instead.
-- The GTCSRTSACUser administrative user is able to capture perform counters related to SQL Server. **Note:** if the **User=** parameter is passed the script will use this user instead.
+- The GTCSRTSACUser administrative user is able to capture performance counters related to SQL Server. **Note:** if the **User=** parameter is passed the script will use this user instead.
 - The results of each command are stored in the Findings.csv (i.e. this is the only place results are stored). The majority of results are counts of database objects or performance counters (i.e. numeric data).
 
 # Optional Features & Configuration
@@ -119,12 +119,12 @@ bash launch_recommendation_tool.sh -d
 You are now ready to run the commands in this section. 
 
 ## Single Project Analysis (all VMs in project analyzed)
-- At the Cloud Shell prompt start the GTCSRT tool with the following command line arguements
+- At the Cloud Shell prompt start the GTCSRT tool with the following command line arguments
 ```
 pwsh GTCSRT.ps1 projectid=[Project ID]
 ```
 ## Single VM Analysis
-- At the Cloud Shell prompt start the GTCSRT tool with the following command line arguements
+- At the Cloud Shell prompt start the GTCSRT tool with the following command line arguments
 ```
 pwsh GTCSRT.ps1 projectid=[Project ID] instanceid=[VM Instance Name]
 ```
