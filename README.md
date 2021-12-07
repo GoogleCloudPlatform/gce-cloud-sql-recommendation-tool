@@ -62,8 +62,8 @@ bash launch_recommendation_tool.sh
 - Below is a screenshot of the tool running:
 !["Image of Cloud Shell Console highlighting a progress bar showing the status of the analysis"](Readme/progress.png)
 
-- Step 6: When the script completes, click the Cloud Shell elipse and select **download** to download the results of the tool analysis
- !["Image of Cloud Shell Console highlighting an elipse and the download dropdown opton"](Readme/CloudShellDownload.png)
+- Step 6: When the script completes, click the Cloud Shell ellipse and select **download** to download the results of the tool analysis
+ !["Image of Cloud Shell Console highlighting an ellipse and the download dropdown option"](Readme/CloudShellDownload.png)
 
 - Step 7: Enter **Recommendations.zip** and click the **Download** button
 !["Image of a textbox with the text Recoomendations.zip and a highlighted download button"](Readme/CloudShellDownload2.png)
@@ -89,7 +89,11 @@ bash launch_recommendation_tool.sh
 1. Script iterates over all projects the script user has access to
 2. Script iterates through all VMs on each project
 3. Script looks at the OS image to determine if it is a Windows OS
+<<<<<<< HEAD
 4. On Windows OS, it adds the GTCSRTSAC admininstrative user to the VM (stores password in memory only). **Note:** if the **User=** parameter is passed the script will use this administrative user.
+=======
+4. If Windows OS, it adds the GTCSRTSAC administrative user to the VM (stores password in memory only). **Note:** if the **User=** parameter is passed the script will use this administrative user.
+>>>>>>> 72b266741db5b7c92b84367b9bdc48d76555c5ba
 5. Records the state of the Serial Access Console (SAC) configuration
 6. If SAC is not enabled on the VM, script enables SAC access
 7. Script executes commands for each step in the Rules.csv definition (if marked as enabled)
