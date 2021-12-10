@@ -89,11 +89,7 @@ bash launch_recommendation_tool.sh
 1. Script iterates over all projects the script user has access to
 2. Script iterates through all VMs on each project
 3. Script looks at the OS image to determine if it is a Windows OS
-<<<<<<< HEAD
-4. On Windows OS, it adds the GTCSRTSAC admininstrative user to the VM (stores password in memory only). **Note:** if the **User=** parameter is passed the script will use this administrative user.
-=======
 4. If Windows OS, it adds the GTCSRTSAC administrative user to the VM (stores password in memory only). **Note:** if the **User=** parameter is passed the script will use this administrative user.
->>>>>>> 72b266741db5b7c92b84367b9bdc48d76555c5ba
 5. Records the state of the Serial Access Console (SAC) configuration
 6. If SAC is not enabled on the VM, script enables SAC access
 7. Script executes commands for each step in the Rules.csv definition (if marked as enabled)
@@ -133,9 +129,9 @@ pwsh GTCSRT.ps1 projectid=[Project ID]
 pwsh GTCSRT.ps1 projectid=[Project ID] instanceid=[VM Instance Name]
 ```
 ## Use Existing Windows Admin User
-- An existing Windows administrative user can be used in single VM, single project, or all project/all VM analysis mode.
+- An existing Windows administrative user can be used in single VM, single project, or all project/all VM analysis mode. If the user belongs to a Windows AD domain then also specify the domain as another parameter.
 ```
-pwsh GTCSRT.ps1 user=[Windows Admin User]
+pwsh GTCSRT.ps1 user=[Windows Admin User] domain=[Windows AD Domain]
 ```
 ## Alternate SQL Port
 - In the Rules.csv file do a search and replace to replace **1433** with the desired SQL port
