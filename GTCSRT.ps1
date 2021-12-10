@@ -13,7 +13,50 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 #>
-#! /usr/bin/env bash
+<#
+  .SYNOPSIS
+  Analyze instances running SQL Server for Cloud SQL compatibility
+
+  .DESCRIPTION
+  Identify features used in MS SQL Server instances running in Compute Engine 
+  and make recommendations about ease of migration into Cloud SQL for SQL Server. 
+  The recommendations are based on features not available in MS SQL Server for
+  Linux which is the version running in Cloud SQL for SQL Server
+
+  .PARAMETER projectID
+  Specifies the Google Cloud project to analyze. 
+  Will run on all projects if not specified.
+
+  .PARAMETER instanceID
+  Specifies the Compute Engine instance to analyze. 
+  Will run on all instances if not specified.
+
+  .PARAMETER user
+  Specifies the username to connect to the Compute Engine instance(s)
+  Will create a user GCTSRTSACUser if not specified which is deleted after the script runs.
+
+  .PARAMETER domain
+  Specifies the Active Directory domain for the user.
+  Will assume a local Windows user if not specified
+
+  .INPUTS
+  None. You cannot pipe objects to GTCSRT.ps1.
+
+  .OUTPUTS
+  None. GTCSRT.ps1 does not generate any output.
+
+  .EXAMPLE
+   pwsh GTCSRT.ps1
+
+  .EXAMPLE
+   pwsh GTCSRT.ps1 projectID=MyProject
+
+  .EXAMPLE
+   pwsh GTCSRT.ps1 projectID=MyProject user=Username domain=MyDomain
+
+  .EXAMPLE
+   pwsh GTCSRT.ps1 projectID=MyProject user=Username domain=MyDomain instanceID=MySQLInstance
+#>
 
 # Version 1.1
 # 4/23/2021
@@ -39,15 +82,20 @@ function Send-SACCommand {
   # Create ssh command to connect to serial port
   $gcloudString = "gcloud compute connect-to-serial-port {0} --port 2 --zone {1} --project {2} --dry-run" -f `
   $GCPDetails.VMInstanceID, $GCPDetails.Zone, $GCPDetails.ProjectID
-  #Write-Host "gcloudString: $gcloudString"
   $sshString = Invoke-Expression $gcloudString
-  #Write-Host "sshString: $sshString"
+  #Write-Host "`ngcloudString: $gcloudString"
+  #Write-Host "sshString   : $sshString"
+  #Write-Host "SendText    : $SendText"
+  #Write-Host "Remark      : $Remark"
 
   $remarkString = "rem ~~~{0}" -f , $Remark;
   $sacRemarkString = "echo '{0}'|{1}" -f $remarkString, $sshString
   $sacSendTextString = "echo '{0}'|{1}" -f $SendText, $sshString
 
   $result = ""
+  
+  #Write-Host "sacRemarkString      : $sacRemarkString"
+  #Write-Host "sacSendTextString    : $sacSendTextString"
 
   # If a remarkeis provded, send remark  and then send command
   if ($Remark -ne "") {
@@ -62,9 +110,13 @@ function Send-SACCommand {
 
   # Strip out the VT TTY control characters
   $result = $result -replace '\e\[\d+;*\d+?[ABCDHJKfmsu]', '' -replace '\e\[K', '' -replace '\e\[\d+', ''
+
+  #Write-Host "result      : $result"
+  #Write-Host "`n"
+
   Write-Output $result
 }
-# Sends the SAC authentincation and command completes the channel negoation process on VM
+# Sends the SAC authentication and command completes the channel negoation process on VM
 function Login-SAC {
   [CmdletBinding()]
   param(
@@ -75,6 +127,9 @@ function Login-SAC {
     # The Windows administrative user on the VM OS
     [Parameter(Mandatory = $true)]
     $VMUser,
+
+    [Parameter(Mandatory = $true)]
+    $VMDomain,
 
     [Parameter(Mandatory = $true)]
     $VMPass
@@ -89,10 +144,10 @@ function Login-SAC {
 
    # A common reason this would fail is that there wasn't an RSA SSH key present. This command automatically
    #    and propogates the SSH key. The script will need to be restarted.
-   $createSSHKeys = invoke-expression "gcloud compute ssh $($GCPDetails.VMInstanceID) --force-key-file-overwrite --zone $($GCPDetails.Zone)" *>&1
+   $createSSHKeys = invoke-expression "gcloud compute ssh $($GCPDetails.VMInstanceID) --force-key-file-overwrite --zone $($GCPDetails.Zone) --project $($GCPDetails.ProjectID)" *>&1
    if ( $global:LASTEXITCODE -gt 0) {
      Write-Error "Failed to connect to serial console on: $($vm.name)"
-     Remove-SACConfig $InstanceID $GCPDetails.Zone $true
+     Remove-SACConfig $InstanceID $GCPDetails.Zone $GCPDetails.ProjectID $true
      return
      }
   }
@@ -119,7 +174,7 @@ function Login-SAC {
   # To supports x-platform, sends appropriate "press any key" and the Windows user ID
   $zz = Send-SACCommand $GCPDetails "$AnyKey$VMUser" ""
 
-  $zz = Send-SACCommand $GCPDetails "" ""
+  $zz = Send-SACCommand $GCPDetails "$VMDomain" ""
   $zz = Send-SACCommand $GCPDetails "$VMPass" ""
 
   # Takes time to complete SAC-OS negotiation
@@ -274,7 +329,7 @@ function Process-Rules {
   $zm = $vm.zone -match "^.+/zones/([a-z0-9-]+)$"
   $zone = $Matches[1]
 
- # Custom Ojject that represents a finding as stored in findings.csv
+ # Custom Object that represents a finding as stored in findings.csv
   $finding = [PSCustomObject]@{
     PSTypeName     = 'Finding'
     ProjectID      = $projID
@@ -315,7 +370,7 @@ function Process-Rules {
     if ((Get-IsCommandSafe $rule.Command) -eq $false)
     {
       Write-Error "Terminating execution."
-      Remove-SACConfig $InstanceID  $zone $SACEnabled
+      Remove-SACConfig $InstanceID $zone $projID $SACEnabled
       Send-SACCommand $GCPDetails "exit$($EOL)" ""
       Exit
     } 
@@ -357,21 +412,21 @@ function Process-Rules {
       # TTY buffer maxes-out at 10K characters. There is no command to clear the buffer
       #    the only way to clear the buffer is to establish a new command channel
       if ($queryResult.Length -gt 0 -and $queryResult[$queryResult.Length - 1].length -gt 8000) {
-       Login-SAC $GCPDetails $user $sacPw
+       Login-SAC $GCPDetails $user $domain $sacPw
       }
 
       # Need to fill the TTY buffer so that the results can be read back
       $queryResult += Send-SACCommand $GCPDetails "$EOL" ""
-      $queryResult += Send-SACCommand  $GCPDetails "$($rule.command)$($EOL)" "$($rule.description)$($EOL)"
+      $queryResult += Send-SACCommand $GCPDetails "$($rule.command)$($EOL)" "$($rule.description)$($EOL)"
       $queryResult += Send-SACCommand $GCPDetails "$EOL" ""
       $queryResult += Send-SACCommand $GCPDetails "$EOL" ""
 
       # If the SAC prompt is returned, this means that the command channel session failed to be established
-      if ( ($queryResult[$queryResult.length - 1]) -like "*SAC>*") {Login-SAC $GCPDetails $user $sacPw }
+      if ( ($queryResult[$queryResult.length - 1]) -like "*SAC>*") {Login-SAC $GCPDetails $user $domain $sacPw }
 
       if ($tries -gt 5)
       {
-        Remove-SACConfig $vm.Name $zone $SACEnabled
+        Remove-SACConfig $vm.Name $zone $projID $SACEnabled
         Write-Warning "SAC session failed on $($vm.name). Was the correct user/pass provided?"
         Send-SACCommand $GCPDetails "exit$($EOL)" ""
         return
@@ -493,7 +548,8 @@ $global:sacPw = "" # The existing Windows user password or the new one created f
 $global:projectID = ""
 $global:instanceID = ""
 $global:UserProvided = $false
-$global:user="" # THe user passed in as a command line argument or GCTSRTSACUser if not
+$global:user="" # The user passed as a command line argument or GCTSRTSACUser if not
+$global:domain="" # The Windows Active Directory domain for the $user
 
 # Get the command line arguments
 foreach ($arg in $args)
@@ -502,6 +558,7 @@ foreach ($arg in $args)
   if ($argKeyVal[0].ToLower().Trim() -eq "projectid") {$projectID =$argKeyVal[1].Trim() }
   if ($argKeyVal[0].ToLower().Trim() -eq "instanceid") {$instanceID =$argKeyVal[1].Trim() }
   if ($argKeyVal[0].ToLower().Trim() -eq "user") {$user =$argKeyVal[1].Trim() }
+  if ($argKeyVal[0].ToLower().Trim() -eq "domain") {$domain =$argKeyVal[1].Trim() }
 }
 
 if ($user -eq "")
@@ -514,7 +571,7 @@ if ($user -eq "")
   if ($consent.ToLower() -eq "y" -or $consent.ToLower() -eq "Yes") {} else {return}      
 }
 
-# If user arg was sent get the password and ensure one was provided
+# If user arg was provided, get the password and ensure one was provided
 if(![string]::IsNullOrWhiteSpace($user))
 {
   $sacPwSS = Read-Host "Enter password" -AsSecureString
@@ -543,7 +600,7 @@ if ($IsLinux) {
 $GCPFullyQualAccount = (Invoke-Expression "gcloud auth list --filter=status:ACTIVE --format json *>&1" | ConvertFrom-Json).account
 if ( $global:LASTEXITCODE -gt 0) {
   Write-Error "Failed to list current authenticated account user"
-  Remove-SACConfig $InstanceID  $zone $SACEnabled
+  #Remove-SACConfig $InstanceID $zone $projectID $SACEnabled
   return
 }
 
@@ -565,7 +622,7 @@ $knownHostsLocation = """$home$($PathSep).ssh$($PathSep)google_compute_known_hos
 $projects = Invoke-Expression "gcloud projects list --format json *>&1" | convertfrom-json
 if ( $global:LASTEXITCODE -gt 0) {
   Write-Error "Failed to list projects under user: $gcpUser"
-  Remove-SACConfig $InstanceID  $zone $true
+  #Remove-SACConfig $InstanceID  $zone $true
   return
 }
 
@@ -584,15 +641,15 @@ for ($proj = 0; $proj -lt $projects.count; $proj++) {
 
   Write-host "`nLooking for Windows VMs in project: $($project.projectId)"
 
-  $zz =  Invoke-Expression "gcloud config set project $($project.projectId)" *>&1
+  #$zz =  Invoke-Expression "gcloud config set project $($project.projectId)" *>&1
 
   # Sends 'Y' if prompted for confirmation
-  $vms = Invoke-Expression "'Y' | gcloud compute instances list --filter status:RUNNING --format json" *>&1 | ConvertFrom-Json
+  $vms = Invoke-Expression "'Y' | gcloud compute instances list --filter status:RUNNING --format json --project $($project.projectId)" *>&1 | ConvertFrom-Json
   if ( $global:LASTEXITCODE -gt 0) {
     Write-Error "Failed to list compute instances for project: $($project.projectId)"
     Write-Host "`nTry running this command instead on projects where you have access:"
     Write-Host "   pwsh GTCSRT.ps1 projectid=[Project ID]`n"
-    Remove-SACConfig $InstanceID $zone $true
+    Remove-SACConfig $InstanceID $zone $project.projectId $true
     exit 1
   }
 
@@ -637,7 +694,7 @@ for ($proj = 0; $proj -lt $projects.count; $proj++) {
       write-Warning "Adding GTCSRTSACUser to instance: $($vm.Name)"
 
       # Will send 'Y' confirmation to user password resest prompt
-      $GTCSRTSACUser = Invoke-Expression "'Y' | gcloud compute reset-windows-password $($vm.name) --user=$user --zone=$zone *>&1"
+      $GTCSRTSACUser = Invoke-Expression "'Y' | gcloud compute reset-windows-password $($vm.name) --user=$user --zone=$zone --project $($project.projectId)*>&1"
 
       # Captures the new password returned for the new SAC User
       $passmatch = $GTCSRTSACUser -match "password: (.+)"
@@ -652,10 +709,10 @@ for ($proj = 0; $proj -lt $projects.count; $proj++) {
     write-host "Checking if VM Serial Access Console (SAC) is enabled on instance: $($vm.Name)"
 
     # Adding the instance metadata that enables SAC connections
-    $enableSAC = Invoke-Expression "gcloud compute instances add-metadata $($vm.Name) --metadata=serial-port-enable=TRUE --zone $($vm.zone) "  *>&1
+    $enableSAC = Invoke-Expression "gcloud compute instances add-metadata $($vm.Name) --metadata=serial-port-enable=TRUE --zone $($vm.zone) --project $($project.projectId)"  *>&1
     if ( $global:LASTEXITCODE -gt 0) {
       Write-Error "Unable to check/set instance metadata for $($vm.Name)"
-      Remove-SACConfig $vm.Name $zone $true
+      Remove-SACConfig $vm.Name $zone $project.projectId $true
       continue
     }
 
@@ -681,10 +738,10 @@ for ($proj = 0; $proj -lt $projects.count; $proj++) {
     }
 
     # Negotiates, authenticates, and establishes SAC command session
-    $o = Login-SAC $GCPDetails $user $sacPw
+    $o = Login-SAC $GCPDetails $user $domain $sacPw
     if ($o -eq "failed SAC login") {
       Write-Error "Failed SAC Login"
-      Remove-SACConfig $vm.Name $zone $SACEnabled
+      Remove-SACConfig $vm.Name $zone $project.projectId $SACEnabled
       return
     }
 
@@ -695,7 +752,7 @@ for ($proj = 0; $proj -lt $projects.count; $proj++) {
     $zz = Process-Rules  -Rules $rules -VM $vm
 
     # Resets SAC config to original state
-    $zz = Remove-SACConfig $vm.name $zone $SACEnabled
+    $zz = Remove-SACConfig $vm.name $zone $project.projectId $SACEnabled
 
     # Exits the SAV session for the VM
     $zz = Exit-SAC
