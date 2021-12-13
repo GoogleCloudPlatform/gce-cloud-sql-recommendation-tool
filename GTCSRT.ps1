@@ -117,6 +117,7 @@ function Send-SACCommand {
   Write-Output $result
 }
 # Sends the SAC authentication and command completes the channel negoation process on VM
+
 function Login-SAC {
   [CmdletBinding()]
   param(
@@ -144,7 +145,8 @@ function Login-SAC {
 
    # A common reason this would fail is that there wasn't an RSA SSH key present. This command automatically
    #    and propogates the SSH key. The script will need to be restarted.
-   $createSSHKeys = invoke-expression "gcloud compute ssh $($GCPDetails.VMInstanceID) --force-key-file-overwrite --zone $($GCPDetails.Zone) --project $($GCPDetails.ProjectID)" *>&1
+   invoke-expression "gcloud compute ssh $($GCPDetails.VMInstanceID) --force-key-file-overwrite --zone $($GCPDetails.Zone) --project $($GCPDetails.ProjectID)" 
+
    if ( $global:LASTEXITCODE -gt 0) {
      Write-Error "Failed to connect to serial console on: $($vm.name)"
      Remove-SACConfig $InstanceID $GCPDetails.Zone $GCPDetails.ProjectID $true
@@ -154,10 +156,14 @@ function Login-SAC {
 
   # Empty SAC commands are entered so that the TTY buffer can be read back
   $status = Send-SACCommand $GCPDetails "$EOL" ""
-  if ($status -eq "No Result") {Write-Output "failed SAC login"; return}
+  if ($status -eq "No Result") {
+    Write-Output "failed SAC login"; 
+    return $false
+  }
 
   # If stuck in an authentication loop, will exit back to the SAC control channel
-  if ($status[$status.length - 1].Contains("authenticate")) {
+  #if ($status[$status.length - 1].Contains("authenticate")) {
+  if($status -like '*authenticate*' -or $status -like '*credentials*') {
     $zz = Send-SACCommand $GCPDetails "`e`t" ""
   }
 
@@ -175,14 +181,26 @@ function Login-SAC {
   $zz = Send-SACCommand $GCPDetails "$AnyKey$VMUser" ""
 
   $zz = Send-SACCommand $GCPDetails "$VMDomain" ""
+
   $zz = Send-SACCommand $GCPDetails "$VMPass" ""
 
   # Takes time to complete SAC-OS negotiation
-  Start-Sleep -Seconds 2
+  Start-Sleep -Seconds 3
 
-  $zz = Send-SACCommand $GCPDetails "$EOL" ""
+  $status     = Send-SACCommand $GCPDetails "$EOL" ""
 
+  # If stuck in an authentication loop, will exit back to the SAC control channel
+  #if ($status[$status.length - 1].Contains("authenticate")) {
+  if($status -like '*unable to authenticate*') {
+    $zz = Send-SACCommand $GCPDetails "`e`t" ""
+    Write-Host "Unable to logon to $($GCPDetails.VMInstanceID) as $VMDomain\$VMUser. Please verify that the Domain, Username and Password provided are correct." -ForegroundColor Red
+   return $false 
+  }
+  else {
+     return $true
+  }
 }
+
 function Get-MatchResult {
   [CmdletBinding()]
   param
@@ -208,8 +226,8 @@ function Get-MatchResult {
   }
   # Returns the regex match group
   else { Write-Output $matchGroup }
-
 }
+
 # Returns the SAC settings to their original value upon error or script completion
 function Remove-SACConfig {
   [CmdletBinding()]
@@ -222,6 +240,10 @@ function Remove-SACConfig {
     # VM Zone
     [Parameter(Mandatory = $false)]
     $Zone,
+
+    # ProjectID
+    [Parameter(Mandatory = $false)]
+    $ProjectID,
 
     # The original state of the SAC configuration
     [Parameter(Mandatory = $false)]
@@ -241,8 +263,8 @@ function Remove-SACConfig {
    }
 
     if (!$SACWasAlreadyEnabled) {
-      $disableSAC = Invoke-Expression "gcloud compute instances remove-metadata $InstanceID  --zone $Zone --keys=serial-port-enable " *>&1
       Write-Host "Disabling SAC: Setting back to the original setting at the beginning of script execution" -ForegroundColor Green
+      Invoke-Expression "gcloud compute instances remove-metadata $InstanceID --zone $Zone --project $ProjectID --keys=serial-port-enable " 
     }
     else {
       Write-Host "Leaving SAC Enabled: This was the setting at the beginning of script execution" -ForegroundColor Green
@@ -250,6 +272,7 @@ function Remove-SACConfig {
 
   }
 }
+
 # Exits the SAC Command session
 function Exit-SAC{
   Send-SACCommand $GCPDetails "exit$($EOL)" ""
@@ -261,17 +284,17 @@ function Get-Rules {
   Write-Output $r
 }
 
-# If the script has been executed several times, thia will rename the previous findings.csv file so data is not lost
+# If the script has been executed several times, this will rename the previous findings.csv file so data is not lost
 function Archive-FindingsFile
 {
   $exists =Test-Path "$AppPath$($PathSep)findings.csv"
   if ($exists)
    {
-     rename-item "$AppPath$($PathSep)findings.csv" "$AppPath$($PathSep)findings.csv_$(get-date -uformat "%s")"
+     rename-item "$AppPath$($PathSep)findings.csv" "$AppPath$($PathSep)findings.csv_$(Get-Date -format s)"
    }
 }
 
-# Creates new finding file or appends result to and to the findings.csv file
+# Creates new findings.csv file or appends result to and to the findings.csv file
 function Add-Finding {
   [CmdletBinding()]
   param (
@@ -318,7 +341,7 @@ function Process-Rules {
     [Parameter(Mandatory = $true)]
     $VM
   )
-  $IsSQLVM = $false # As rules get exexuted will set if SQL matches are found
+  $IsSQLVM = $false # As rules get executed will set if SQL matches are found
   $SQLInstance = "" # The SQL instance ID that gets retained for use accross rules
 
   # Matches the project ID for the VM
@@ -377,7 +400,7 @@ function Process-Rules {
     
     # VM analysis progress bar
     $pct =  [math]::Round( $counter/$ruleCount*100)
-    Write-Progress -Activity "$($finding.VMInstanceID) Analysis Progress" -Status "$pct% Complete:" -PercentComplete $pct
+    Write-Progress -Activity "$($finding.VMInstanceID): Checking for '$($rule.description)'" -Status "$pct% Complete:" -PercentComplete $pct
 
     $finding.Category = $rule.Category
     $finding.Step = $rule.step
@@ -385,13 +408,13 @@ function Process-Rules {
     $finding.Scored = $rule.has_score
     $finding.Recommendation = ""
 
-    #If a rule is not enabled skip to the next rule
+    # If a rule is not enabled skip to the next rule
     if ($rule.step_enabled -eq "no") { continue }
 
-    # Step 1 rules are  used to determine if the VM has SQL--if not skip to the next VM
+    # Step 1 rules are used to determine if the VM has SQL--if not skip to the next VM
     if ($rule.step -gt 1 -and $IsSQLVM -eq $false ) { return }
 
-    # This is a dynamic rule that captures Is_BYOL for an  info finding
+    # This is a dynamic rule that captures Is_BYOL for an info finding
     if ($rule.description -like "*BYOL*") {
       if ($vm.disks[0].licenses[0] -notlike "*sql*" -and $IsSQLVM) { $finding.Result = "Yes" } Else { $finding.Result = "No" }
       $finding | Add-Finding
@@ -412,7 +435,13 @@ function Process-Rules {
       # TTY buffer maxes-out at 10K characters. There is no command to clear the buffer
       #    the only way to clear the buffer is to establish a new command channel
       if ($queryResult.Length -gt 0 -and $queryResult[$queryResult.Length - 1].length -gt 8000) {
-       Login-SAC $GCPDetails $user $domain $sacPw
+        $rt = Login-SAC $GCPDetails $user $domain $sacPw
+        if ($rt -eq $false) { 
+          # Resets SAC config to original state
+          $zz = Remove-SACConfig $vm.name $zone $project.projectId $SACEnabled
+          Write-Host "Exiting...";  
+          return
+        }
       }
 
       # Need to fill the TTY buffer so that the results can be read back
@@ -422,7 +451,15 @@ function Process-Rules {
       $queryResult += Send-SACCommand $GCPDetails "$EOL" ""
 
       # If the SAC prompt is returned, this means that the command channel session failed to be established
-      if ( ($queryResult[$queryResult.length - 1]) -like "*SAC>*") {Login-SAC $GCPDetails $user $domain $sacPw }
+      if ( ($queryResult[$queryResult.length - 1]) -like "*SAC>*") {
+        $rt = Login-SAC $GCPDetails $user $domain $sacPw
+        if ($rt -eq $false) {
+          # Resets SAC config to original state
+          $zz = Remove-SACConfig $vm.name $zone $project.projectId $SACEnabled
+          Write-Host "Exiting...";  
+          return
+        }
+      }
 
       if ($tries -gt 5)
       {
@@ -641,8 +678,6 @@ for ($proj = 0; $proj -lt $projects.count; $proj++) {
 
   Write-host "`nLooking for Windows VMs in project: $($project.projectId)"
 
-  #$zz =  Invoke-Expression "gcloud config set project $($project.projectId)" *>&1
-
   # Sends 'Y' if prompted for confirmation
   $vms = Invoke-Expression "'Y' | gcloud compute instances list --filter status:RUNNING --format json --project $($project.projectId)" *>&1 | ConvertFrom-Json
   if ( $global:LASTEXITCODE -gt 0) {
@@ -694,7 +729,7 @@ for ($proj = 0; $proj -lt $projects.count; $proj++) {
       write-Warning "Adding GTCSRTSACUser to instance: $($vm.Name)"
 
       # Will send 'Y' confirmation to user password resest prompt
-      $GTCSRTSACUser = Invoke-Expression "'Y' | gcloud compute reset-windows-password $($vm.name) --user=$user --zone=$zone --project $($project.projectId)*>&1"
+      $GTCSRTSACUser = Invoke-Expression "'Y' | gcloud compute reset-windows-password $($vm.name) --user=$user --zone=$zone --project $($project.projectId) *>&1"
 
       # Captures the new password returned for the new SAC User
       $passmatch = $GTCSRTSACUser -match "password: (.+)"
@@ -706,19 +741,20 @@ for ($proj = 0; $proj -lt $projects.count; $proj++) {
       }
     }
 
-    write-host "Checking if VM Serial Access Console (SAC) is enabled on instance: $($vm.Name)"
+    write-host "Checking if the instance serial console is enabled: $($vm.Name)"
 
     # Adding the instance metadata that enables SAC connections
-    $enableSAC = Invoke-Expression "gcloud compute instances add-metadata $($vm.Name) --metadata=serial-port-enable=TRUE --zone $($vm.zone) --project $($project.projectId)"  *>&1
+    $enableSAC = Invoke-Expression "gcloud compute instances add-metadata $($vm.Name) --metadata=serial-port-enable=TRUE --zone $($vm.zone) --project $($project.projectId) *>&1"
+
     if ( $global:LASTEXITCODE -gt 0) {
       Write-Error "Unable to check/set instance metadata for $($vm.Name)"
       Remove-SACConfig $vm.Name $zone $project.projectId $true
       continue
     }
 
-    # If "updated" is returned that means SAC was not previously enabled
+    # If "Updated" is returned or the current metadata value is undefined, it means that SAC is not enabled
     if ($enableSAC -like "Updated*") {
-      Write-Warning "SAC was not enabled. Temporaily enabling for this analysis"
+        Write-Warning "Serial console was not enabled. Temporarily enabling for this analysis."
       $SACEnabled = $false
     }
     # Will return "no change" if SAC was already enabled
@@ -737,19 +773,19 @@ for ($proj = 0; $proj -lt $projects.count; $proj++) {
       KnownHostsLocation = $knownHostsLocation
     }
 
-    # Negotiates, authenticates, and establishes SAC command session
-    $o = Login-SAC $GCPDetails $user $domain $sacPw
-    if ($o -eq "failed SAC login") {
-      Write-Error "Failed SAC Login"
-      Remove-SACConfig $vm.Name $zone $project.projectId $SACEnabled
-      return
+    $rt = Login-SAC $GCPDetails $user $domain $sacPw
+    if ($rt -eq $false) { 
+      # Resets SAC config to original state
+      Remove-SACConfig $vm.name $zone $project.projectId $SACEnabled
+      Write-Host "Exiting...";  
+      continue;
     }
 
     # Loads the Rules.csv file from disk
     $rules = Get-Rules
 
     # Processes rules and creates findings
-    $zz = Process-Rules  -Rules $rules -VM $vm
+    $zz = Process-Rules -Rules $rules -VM $vm
 
     # Resets SAC config to original state
     $zz = Remove-SACConfig $vm.name $zone $project.projectId $SACEnabled
