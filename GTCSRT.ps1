@@ -682,14 +682,17 @@ for ($proj = 0; $proj -lt $projects.count; $proj++) {
   $vms = Invoke-Expression "'Y' | gcloud compute instances list --filter status:RUNNING --format json --project $($project.projectId)" *>&1 | ConvertFrom-Json
   if ( $global:LASTEXITCODE -gt 0) {
     Write-Error "Failed to list compute instances for project: $($project.projectId)"
-    Write-Host "`nTry running this command instead on projects where you have access:"
-    Write-Host "   pwsh GTCSRT.ps1 projectid=[Project ID]`n"
+    Write-Host "`nTry running this command just on projects where you have access:"
+    Write-Host "Example:  pwsh GTCSRT.ps1 projectid=[Project ID]`n"
     Remove-SACConfig $InstanceID $zone $project.projectId $true
-    exit 1
+    continue
   }
 
   # If there are no VMs in project then move to the next project
-  if ($vms -eq $null){continue}
+  if ($vms -eq $null){
+    Write-host "No running VMs found in project`n"
+    continue
+  }
 
   for ($v = 0; $v -lt $vms.count; $v++) {
     # VM Loop
