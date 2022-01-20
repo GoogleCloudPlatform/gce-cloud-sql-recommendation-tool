@@ -50,7 +50,7 @@ All of the functions included in the GCE to Cloud SQL Recommendation Tool can be
 
 - Step 4: Download Powershell Installation Script
 ```
-wget --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/launch_recommendation_tool.sh
+wget https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/launch_recommendation_tool.sh
 ```
 
 - Step 5: Run script to install Powershell on Cloud Shell and automatically run the tool on all the projects that you have access to.   
