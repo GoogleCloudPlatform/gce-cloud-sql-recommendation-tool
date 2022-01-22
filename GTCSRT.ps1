@@ -106,7 +106,7 @@ function Send-SACCommand {
     $result = Invoke-Expression $sacSendTextString *>&1
   }
   # Indicates that SAC connection/authentication failure
-  if ($result -eq $null) { $result = "No Result" }
+  if ($null -eq $result) { $result = "No Result" }
 
   # Strip out the VT TTY control characters
   $result = $result -replace '\e\[\d+;*\d+?[ABCDHJKfmsu]', '' -replace '\e\[K', '' -replace '\e\[\d+', ''
@@ -221,7 +221,7 @@ function Get-MatchResult {
 
     }
   }
-  if ($matchGroup -eq $null) {
+  if ($null -eq $matchGroup) {
     Write-Output "failed SAC login"
   }
   # Returns the regex match group
@@ -689,7 +689,7 @@ for ($proj = 0; $proj -lt $projects.count; $proj++) {
   }
 
   # If there are no VMs in project then move to the next project
-  if ($vms -eq $null){
+  if ($null -eq $vms){
     Write-host "No running VMs found in project`n"
     continue
   }
