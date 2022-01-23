@@ -470,3 +470,14 @@ Convert-FindingsHTML $findings | Save-Report
 
 # Zip HTML files for easy download
 package-html
+
+
+# Display message about the report been ready
+$zipFile = Join-Path -Path $PSScriptRoot -ChildPath "\Recommendations.zip"
+$exists = Test-Path -Path $zipFile -PathType Leaf
+
+if ($exists)
+{
+  Write-Host "`nThe report was generated and saved as $zipFile"
+  Write-Host "Please download, uncompress and then open the file GCE_To_Cloud_SQL_Recommendations.html in a web browser`n"
+}
