@@ -84,6 +84,11 @@ function Send-SACCommand {
   $GCPDetails.VMInstanceID, $GCPDetails.Zone, $GCPDetails.ProjectID
   $sshString = Invoke-Expression $gcloudString
 
+  # Try again to create the ssh command if the first try had to generate a new private/public key pair
+  if ( $sshString -like "*Generating public*" ) {
+    $sshString = Invoke-Expression $gcloudString
+  }
+
   # There was an error when connecting to the serial console
   if ( $global:LASTEXITCODE -gt 0) {
     Write-Host "`nError when trying to generate SSH command to connect to serial console" -ForegroundColor Red
