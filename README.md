@@ -50,15 +50,18 @@ All of the functions included in the GCE to Cloud SQL Recommendation Tool can be
 
 - Step 4: Download Powershell Installation Script
 ```
-wget --header 'Authorization: token b1a941a9a2c7beb70e518671502c5b56722cd9d4' https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/launch_recommendation_tool.sh
+wget https://raw.githubusercontent.com/GoogleCloudPlatform/gce-cloud-sql-recommendation-tool/master/launch_recommendation_tool.sh
 ```
 
-- Step 5: Run script to install Powershell on Cloud Shell and automatically run the tool on all the projects that you have access to.   
-   Note: To run the tool on a single project see the section "Optional Features & Configuration".
+- Step 5: Run script to install Powershell on Cloud Shell and automatically run the tool on **all** the projects that you have access to.   
+
 ```
 bash launch_recommendation_tool.sh
 ```
-
+**Note**: If you just need to run the tool on a single project see the section "Optional Features & Configuration" for examples on how to run it on a single project. But, you will still need to run the command below with the "-d" parameter to download all the scripts and install Powershell.
+```
+bash launch_recommendation_tool.sh -d
+````
 - Below is a screenshot of the tool running:
 !["Image of Cloud Shell Console highlighting a progress bar showing the status of the analysis"](Readme/progress.png)
 
@@ -112,7 +115,7 @@ Administrative Windows access is required to:
 
 # Optional Features & Configuration
 ## Note about running the commands below
-When you run the command "**bash launch_recommendation_tool.sh**", it will download the code, install Powershell and analyze all your projects. The commands in this section expect that you already downloaded the code and installed Powershell. If you have not run the launch_recommendation_tool.sh yet, you can run it with the "-d" parameter to just download the code and install Powershell without analyzing all your projects. See example below:
+When you run the command "**bash launch_recommendation_tool.sh**", it will download the code, install Powershell and analyze all your projects. The commands in this section expect that you already downloaded the code and installed Powershell. If you have not run the launch_recommendation_tool.sh yet, you can run it with the "-d" parameter to just download all the scripts and install Powershell without analyzing all your projects. See example below:
 ```
 bash launch_recommendation_tool.sh -d
 ````
